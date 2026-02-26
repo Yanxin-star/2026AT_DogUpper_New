@@ -417,6 +417,7 @@ RobotCalcNode::RobotCalcNode(const rclcpp::Node::SharedPtr node)
 
 RobotCalcNode::~RobotCalcNode() {}
 
+
 void RobotCalcNode::show_callback() {
 
     visualization_msgs::msg::Marker com_marker;

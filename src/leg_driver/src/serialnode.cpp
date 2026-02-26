@@ -163,6 +163,13 @@ SerialNode::SerialNode()
     base_time=this->get_clock()->now();
 }
 
+
+
+//构造函数结束
+
+
+
+
 SerialNode::~SerialNode() {
     // 请求线程退出并等待其结束，保证安全关闭
     exit_thread = true;

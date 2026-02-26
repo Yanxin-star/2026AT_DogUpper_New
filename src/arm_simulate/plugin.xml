@@ -1,0 +1,6 @@
+<library path="arm_simulate">
+  <class
+    name="arm_simulate/Arm_sim"
+    type="arm_sim::Arm_sim"
+    base_class_type="controller_interface::ControllerInterface"/>
+</library>
