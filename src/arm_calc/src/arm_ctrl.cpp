@@ -49,6 +49,8 @@ ArmCalcNode::ArmCalcNode(const rclcpp::Node::SharedPtr node)
                     "last_target_joint_pos 初始化完成");
             }
             
+            
+
             if (!arm_state_updated ) {
                 arm_state_updated = true;
                 if(count>=5000){
@@ -75,7 +77,7 @@ ArmCalcNode::ArmCalcNode(const rclcpp::Node::SharedPtr node)
     robot_tf_broadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(node_);
 
     kdl_parser::treeFromString(urdf_xml, tree); // 解析机械臂的KDL树结构
-    tree.getChain("body_link", "link4", arm_chain);
+    tree.getChain("base_link", "link4", arm_chain);
     
 
     // 初始化机械臂解算器
@@ -86,14 +88,15 @@ ArmCalcNode::ArmCalcNode(const rclcpp::Node::SharedPtr node)
     joint_display_msg.position.resize(4);
 
     move_cmd_sub =
-        node_->create_subscription<robot_interfaces::msg::Armcmd>("robot_move_cmd", 10, [this](const robot_interfaces::msg::Armcmd& msg) {
+        node_->create_subscription<robot_interfaces::msg::Armcmd>("arm_move_cmd", 10, [this](const robot_interfaces::msg::Armcmd& msg) {
                
         arm_exp_cart_pos[0] = msg.x;
         arm_exp_cart_pos[1] = msg.y;
         arm_exp_cart_pos[2] = msg.z;
         arm_exp_yaw         = msg.yaw;
-
+        RCLCPP_INFO(node_->get_logger(), "接受到新目标: x=%f, y=%f, z=%f, yaw=%f", msg.x, msg.y, msg.z, msg.yaw);
         target_change = true;
+        target_received = true; 
         });
 
     ui_update_timer  = node_->create_wall_timer(50ms, std::bind(&ArmCalcNode::show_callback, this));
@@ -155,6 +158,20 @@ void ArmCalcNode::arm_update()
     if (!arm_state_updated || !last_target_initialized)
     {
         RCLCPP_INFO(node_->get_logger(), "等待首次机械臂状态更新中...");
+        return;
+    }
+
+     if (!target_received)
+    {
+        robot_interfaces::msg::Arm joints_target;
+
+        joints_target.servo2.up  = arm_joint_pos[3];
+        joints_target.servo2.low = arm_joint_pos[2];
+        joints_target.rob01.rad  = arm_joint_pos[1];
+        joints_target.rob02.rad  = arm_joint_pos[0];
+
+        arm_target_pub->publish(joints_target);
+
         return;
     }
 

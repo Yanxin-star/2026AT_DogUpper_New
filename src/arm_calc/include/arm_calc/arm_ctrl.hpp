@@ -104,6 +104,7 @@ private:
     bool trajectory_active = false;
     bool target_change     = false;
     bool last_target_initialized = false;
+    bool target_received = false;
     double trajectory_duration = 4.0;
 
     rclcpp::Time start_time;
