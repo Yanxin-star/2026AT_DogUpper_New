@@ -311,6 +311,17 @@
       <state_interface name="velocity"/>
     </joint>
 
-  </ros2_control>
+   </ros2_control>
+
+  <mujoco>
+    <actuator>
+
+      <position joint="joint1" kp="100"/>
+      <position joint="joint2" kp="100"/>
+      <position joint="joint3" kp="100"/>
+      <position joint="joint4" kp="100"/>
+
+    </actuator>
+  </mujoco>
 
 </robot>
