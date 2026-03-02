@@ -31,39 +31,58 @@ ArmCalcNode::ArmCalcNode(const rclcpp::Node::SharedPtr node)
 
     arm_target_pub = node_->create_publisher<robot_interfaces::msg::Arm>("arm_target", 10); // 创建期望位置发布者
 
-    arm_state_sub =
-        node_->create_subscription<robot_interfaces::msg::Arm>("arm_status", 10, [this](const robot_interfaces::msg::Arm& msg) {
-           //这里最终应该是舵机的rad值
-                arm_joint_pos[3] = (double)msg.servo2.up;
-                arm_joint_pos[2] = (double)msg.servo2.low;
-                arm_joint_pos[1] = (double)msg.rob01.rad;
-                arm_joint_pos[0] = (double)msg.rob02.rad;
+    // arm_state_sub =
+    //     node_->create_subscription<robot_interfaces::msg::Arm>("arm_status", 10, [this](const robot_interfaces::msg::Arm& msg) {
+    //        //这里最终应该是舵机的rad值
+    //             arm_joint_pos[3] = (double)msg.servo2.up;
+    //             arm_joint_pos[2] = (double)msg.servo2.low;
+    //             arm_joint_pos[1] = (double)msg.rob01.rad;
+    //             arm_joint_pos[0] = (double)msg.rob02.rad;
                 
+    //         if (!last_target_initialized)
+    //         {
+    //             last_target_joint_pos = arm_joint_pos;
+    //             last_target_initialized = true;
+
+    //             RCLCPP_INFO(
+    //                 node_->get_logger(),
+    //                 "last_target_joint_pos 初始化完成");
+    //         }
+            
+    //         if (!arm_state_updated ) {
+    //             arm_state_updated = true;
+    //             if(count>=5000){
+    //                 RCLCPP_INFO(node_->get_logger(), "机械臂状态首次更新");
+    //                 count=0;
+    //             }
+                
+    //         }
+    //         count++;
+    //     });
+
+    // // 订阅机器人的运动期望
+   
+    arm_state_sub = node_->create_subscription<sensor_msgs::msg::JointState>(
+        "joint_states",
+        10,
+        [this](const sensor_msgs::msg::JointState& msg)
+        {
+            arm_joint_pos[0] = msg.position[0];
+            arm_joint_pos[1] = msg.position[1];
+            arm_joint_pos[2] = msg.position[2];
+            arm_joint_pos[3] = msg.position[3];
+
             if (!last_target_initialized)
             {
                 last_target_joint_pos = arm_joint_pos;
                 last_target_initialized = true;
 
-                RCLCPP_INFO(
-                    node_->get_logger(),
+                RCLCPP_INFO(node_->get_logger(),
                     "last_target_joint_pos 初始化完成");
             }
-            
-            
 
-            if (!arm_state_updated ) {
-                arm_state_updated = true;
-                if(count>=5000){
-                    RCLCPP_INFO(node_->get_logger(), "机械臂状态首次更新");
-                    count=0;
-                }
-                
-            }
-            count++;
+            arm_state_updated = true;
         });
-
-    // 订阅机器人的运动期望
-   
 
     arm_description_param_ = std::make_shared<rclcpp::SyncParametersClient>(node_, "/robot_state_publisher");
 
@@ -109,6 +128,22 @@ ArmCalcNode::~ArmCalcNode() {}
 
 
 void ArmCalcNode::show_callback() {
+
+
+    joint_display_msg.header.stamp =
+        node_->get_clock()->now();
+
+    joint_display_msg.header.frame_id =
+        "base_link";
+
+    joint_display_msg.name =
+    {
+        "joint1",
+        "joint2",
+        "joint3",
+        "joint4"
+    };
+
 
 
     joint_display_msg.position[0] = arm_joint_pos[0];
@@ -221,6 +256,8 @@ void ArmCalcNode::arm_update()
 
     // 获取轨迹点
     arm_step.get_arm_pose(t, current_target);
+
+    arm_joint_pos = current_target;
 
     // 发布目标
     robot_interfaces::msg::Arm joints_target;

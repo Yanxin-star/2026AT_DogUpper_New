@@ -7,7 +7,6 @@ import os
 
 def generate_launch_description():
 
-    simulate_env_launch_scripe="arm_mujoco_sim.py"
 
     urdf_path = os.path.join(
         get_package_share_directory("arm"),
@@ -39,8 +38,6 @@ def generate_launch_description():
         arguments=["-d", rviz2_config_path]  # 可选，指定rviz配置文件
     )
     
-    sim_launch = IncludeLaunchDescription(
-    PythonLaunchDescriptionSource([os.path.join(
-        get_package_share_directory('launch_pack'), 'launch', simulate_env_launch_scripe)]))
     
-    return LaunchDescription([robot_state_pub,  arm_calc , rviz2 ,sim_launch])
+    
+    return LaunchDescription([robot_state_pub,  arm_calc , rviz2])

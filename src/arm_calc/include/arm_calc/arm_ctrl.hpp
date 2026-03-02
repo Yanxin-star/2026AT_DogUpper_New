@@ -72,7 +72,8 @@ private:
     rclcpp::TimerBase::SharedPtr arm_update_timer;
     
     rclcpp::Publisher<robot_interfaces::msg::Arm>::SharedPtr arm_target_pub;
-    rclcpp::Subscription<robot_interfaces::msg::Arm>::SharedPtr arm_state_sub;
+    //rclcpp::Subscription<robot_interfaces::msg::Arm>::SharedPtr arm_state_sub;
+    rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr arm_state_sub;
      rclcpp::Subscription<robot_interfaces::msg::Armcmd>::SharedPtr move_cmd_sub;
     
     rclcpp::Subscription<geometry_msgs::msg::Vector3>::SharedPtr imu_angular_vel_sub;

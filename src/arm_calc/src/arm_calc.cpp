@@ -14,7 +14,7 @@ ArmCalc::ArmCalc(KDL::Chain& chain)
     , jacobain_solver(chain)
     , jdot_solver(chain)
     , vel_solver(chain)
-    ,ik_pos_solver(chain, Eigen::Vector<double,6>(1.0, 1.0, 1.0, 0.0, 0.0, 0.0),1e-6,150,1e-10)
+    ,ik_pos_solver(chain, Eigen::Vector<double,6>(1.0, 1.0, 1.0, 0.0, 1.0, 0.0),1e-6,150,1e-10)
     , dynamin_solver(chain, KDL::Vector(0, 0, -9.81))
     {
     _temp_joint3_array.resize(4);   //提前resize需要用到的KDL::JntArray防止运行时频繁申请/释放内存
