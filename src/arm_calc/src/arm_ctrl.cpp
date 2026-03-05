@@ -274,5 +274,20 @@ void ArmCalcNode::arm_update()
     joints_target.rob02.rad =
         current_target[0];
 
+    static int print_count = 0;
+    print_count++;
+
+    if(print_count >= 50)
+    {
+        RCLCPP_INFO(node_->get_logger(),
+        "Current rad: %f %f %f %f",
+            arm_joint_pos[0],
+            arm_joint_pos[1],
+            arm_joint_pos[2],
+            arm_joint_pos[3]);
+
+        print_count = 0;
+    }
+
     arm_target_pub->publish(joints_target);
 }
