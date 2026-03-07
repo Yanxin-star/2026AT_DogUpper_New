@@ -28,14 +28,14 @@ private:
     int target_log_update_cnt{50};
     bool enable_control{false};
     void armSubscribCb(const robot_interfaces::msg::Arm &msg);
-    void publishArmState(const state_pack_t *arm_state);
+   // void publishArmState(const state_pack_t *arm_state);
     
 
     std::unique_ptr<CDCTrans> cdc_trans;
     std::unique_ptr<std::thread> usb_event_handle_thread;
     target_pack_t arm_target;
     state_pack_t arm_state;
-    rclcpp::Publisher<robot_interfaces::msg::Arm>::SharedPtr arm_pub;
+    //rclcpp::Publisher<robot_interfaces::msg::Arm>::SharedPtr arm_pub;
     rclcpp::Subscription<robot_interfaces::msg::Arm>::SharedPtr arm_sub;
     
     OnSetParametersCallbackHandle::SharedPtr param_server_;

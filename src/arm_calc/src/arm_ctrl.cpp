@@ -120,7 +120,7 @@ ArmCalcNode::ArmCalcNode(const rclcpp::Node::SharedPtr node)
 
     ui_update_timer  = node_->create_wall_timer(50ms, std::bind(&ArmCalcNode::show_callback, this));
     arm_update_timer = node_->create_wall_timer(10ms, std::bind(&ArmCalcNode::arm_update, this));
-
+    //arm_control_timer = node_->create_wall_timer(10ms, std::bind(&ArmCalcNode::arm_control, this));
     RCLCPP_INFO(node_->get_logger(), "初始化完成");
 }
 
@@ -150,6 +150,7 @@ void ArmCalcNode::show_callback() {
     joint_display_msg.position[1] = arm_joint_pos[1];
     joint_display_msg.position[2] = arm_joint_pos[2];
     joint_display_msg.position[3] = arm_joint_pos[3];
+
 
     joint_display_msg.header.stamp = node_->get_clock()->now();
     rviz_joint_publisher->publish(joint_display_msg);
@@ -277,7 +278,7 @@ void ArmCalcNode::arm_update()
     static int print_count = 0;
     print_count++;
 
-    if(print_count >= 50)
+    if(print_count >= 10)
     {
         RCLCPP_INFO(node_->get_logger(),
         "Current rad: %f %f %f %f",
@@ -291,3 +292,34 @@ void ArmCalcNode::arm_update()
 
     arm_target_pub->publish(joints_target);
 }
+
+/*
+void ArmCalcNode::arm_control()
+{
+
+   if(adsorb_state == 0){
+        RCLCPP_INFO(node_->get_logger(), "吸附到块，正在回归初始位置");
+        
+         robot_interfaces::msg::Arm joints_target;
+
+    joints_target.servo2.up =0.0;
+
+    joints_target.servo2.low =0.0;
+        
+
+    joints_target.rob01.rad =0.0;
+        
+    joints_target.rob02.rad =0.0;
+        
+    arm_target_pub->publish(joints_target);
+        
+        
+    }else if(adsorb_state == 1){
+        arm_update();
+    }
+
+ 
+
+}
+
+*/

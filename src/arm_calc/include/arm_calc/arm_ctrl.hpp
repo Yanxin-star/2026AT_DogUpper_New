@@ -49,6 +49,8 @@ private:
 
     void show_callback();
     void arm_update();
+    //void arm_control();
+    
    /*
     std::tuple<Vector3D, Vector3D, Vector3D> signal_leg_calc(
         const Vector3D& exp_cart_pos, const Vector3D& exp_cart_vel, const Vector3D& exp_cart_acc, const Vector3D& exp_cart_force,
@@ -106,6 +108,7 @@ private:
     bool target_change     = false;
     bool last_target_initialized = false;
     bool target_received = false;
+    int adsorb_state = 0;  // 0: 吸附上  1: 不吸附   释放中
     double trajectory_duration = 4.0;
 
     rclcpp::Time start_time;

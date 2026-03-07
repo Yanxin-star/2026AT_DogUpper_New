@@ -33,8 +33,8 @@ typedef struct
 // servo 用于表示伺服电机的上下限
 typedef struct
 {
-    int up;               //!<@brief 上限
-    int low;              //!<@brief 下限
+    float up;               //!<@brief 上限
+    float low;              //!<@brief 下限
 } servo;
 
 // target_pack_t 用于表示目标数据包，包含多个机器人控制模块的期望数据

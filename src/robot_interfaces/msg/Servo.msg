@@ -1,2 +1,2 @@
-int32 up
-int32 low
+float32 up
+float32 low
