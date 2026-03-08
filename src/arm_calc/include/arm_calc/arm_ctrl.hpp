@@ -49,7 +49,8 @@ private:
 
     void show_callback();
     void arm_update();
-    //void arm_control();
+    void arm_control();
+    static double ramp_control(double target, double current, double ramp);
     
    /*
     std::tuple<Vector3D, Vector3D, Vector3D> signal_leg_calc(
@@ -70,8 +71,7 @@ private:
 
     double direction_filter_gate{0.8};
     
-    rclcpp::TimerBase::SharedPtr ui_update_timer;
-    rclcpp::TimerBase::SharedPtr arm_update_timer;
+   
     
     rclcpp::Publisher<robot_interfaces::msg::Arm>::SharedPtr arm_target_pub;
     //rclcpp::Subscription<robot_interfaces::msg::Arm>::SharedPtr arm_state_sub;
@@ -86,8 +86,10 @@ private:
 
 
 
+    rclcpp::TimerBase::SharedPtr ui_update_timer;
+    rclcpp::TimerBase::SharedPtr arm_update_timer;
 
-
+    rclcpp::TimerBase::SharedPtr arm_control_timer;
 
     std::vector<std::string> joint_names = {"joint1", "joint2", "joint3", "joint4"};
 
@@ -108,7 +110,7 @@ private:
     bool target_change     = false;
     bool last_target_initialized = false;
     bool target_received = false;
-    int adsorb_state = 0;  // 0: 吸附上  1: 不吸附   释放中
+    uint32_t adsorb_state = 0;  // 1: 吸附上  0: 不吸附   释放中
     double trajectory_duration = 4.0;
 
     rclcpp::Time start_time;

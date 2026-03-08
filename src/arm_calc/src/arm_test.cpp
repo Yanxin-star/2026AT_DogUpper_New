@@ -39,6 +39,7 @@ public:
         yaw_descriptor.floating_point_range[0].to_value = 3.14159;
         this->declare_parameter<double>("yaw", 0.0, yaw_descriptor);
 
+        this->declare_parameter<int>("step_type", 0);
 
         // create publisher
         pub_ = this->create_publisher<robot_interfaces::msg::Armcmd>("arm_move_cmd", 10);
@@ -82,6 +83,19 @@ public:
                             return result;
                         }
                     }
+                    else if (p.get_name() == "step_type") {
+                        if (p.get_type() == rclcpp::PARAMETER_INTEGER) {
+                            step_type_ = static_cast<uint32_t>(p.as_int());
+                        } else if (p.get_type() == rclcpp::PARAMETER_DOUBLE) {
+                            // allow integers provided as double
+                            step_type_ = static_cast<uint32_t>(p.as_double());
+                        } else {
+                            result.successful = false;
+                            result.reason = "step_type must be an integer";
+                            return result;
+                        }
+                    }
+                    
                 }
                 return result;
             }
@@ -92,6 +106,7 @@ public:
         y_ = static_cast<float>(this->get_parameter("y").as_double());
         z_ = static_cast<float>(this->get_parameter("z").as_double());
         yaw_ = static_cast<float>(this->get_parameter("yaw").as_double());
+        step_type_ = static_cast<uint32_t>(this->get_parameter("step_type").as_int()); 
         publish_move_cmd();
 
         update_timer=this->create_wall_timer(100ms ,[this](){
@@ -107,9 +122,10 @@ private:
         msg.y = y_;
         msg.z = z_;
         msg.yaw = yaw_;
+        msg.mode = step_type_;
         pub_->publish(msg);
-        RCLCPP_INFO(this->get_logger(), "Published Armcmd: x=%.2f y=%.2f z=%.2f yaw=%.3f",
-                    x_, y_, z_, yaw_);
+        RCLCPP_INFO(this->get_logger(), "Published Armcmd: x=%.2f y=%.2f z=%.2f yaw=%.3f step_type=%u",
+                    x_, y_, z_, yaw_, step_type_);
     }
 
     rclcpp::Publisher<robot_interfaces::msg::Armcmd>::SharedPtr pub_;
@@ -117,6 +133,7 @@ private:
     rclcpp::TimerBase::SharedPtr update_timer;
 
     float x_{0.0f}, y_{0.0f}, z_{0.0f},yaw_{0.0f};
+     uint32_t step_type_{0};
 
 };
 

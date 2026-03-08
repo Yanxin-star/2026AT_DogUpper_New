@@ -30,37 +30,6 @@ ArmCalcNode::ArmCalcNode(const rclcpp::Node::SharedPtr node)
     rviz_joint_publisher = node_->create_publisher<sensor_msgs::msg::JointState>("joint_states", 10);
 
     arm_target_pub = node_->create_publisher<robot_interfaces::msg::Arm>("arm_target", 10); // 创建期望位置发布者
-
-    // arm_state_sub =
-    //     node_->create_subscription<robot_interfaces::msg::Arm>("arm_status", 10, [this](const robot_interfaces::msg::Arm& msg) {
-    //        //这里最终应该是舵机的rad值
-    //             arm_joint_pos[3] = (double)msg.servo2.up;
-    //             arm_joint_pos[2] = (double)msg.servo2.low;
-    //             arm_joint_pos[1] = (double)msg.rob01.rad;
-    //             arm_joint_pos[0] = (double)msg.rob02.rad;
-                
-    //         if (!last_target_initialized)
-    //         {
-    //             last_target_joint_pos = arm_joint_pos;
-    //             last_target_initialized = true;
-
-    //             RCLCPP_INFO(
-    //                 node_->get_logger(),
-    //                 "last_target_joint_pos 初始化完成");
-    //         }
-            
-    //         if (!arm_state_updated ) {
-    //             arm_state_updated = true;
-    //             if(count>=5000){
-    //                 RCLCPP_INFO(node_->get_logger(), "机械臂状态首次更新");
-    //                 count=0;
-    //             }
-                
-    //         }
-    //         count++;
-    //     });
-
-    // // 订阅机器人的运动期望
    
     arm_state_sub = node_->create_subscription<sensor_msgs::msg::JointState>(
         "joint_states",
@@ -113,14 +82,15 @@ ArmCalcNode::ArmCalcNode(const rclcpp::Node::SharedPtr node)
         arm_exp_cart_pos[1] = msg.y;
         arm_exp_cart_pos[2] = msg.z;
         arm_exp_yaw         = msg.yaw;
-        RCLCPP_INFO(node_->get_logger(), "接受到新目标: x=%f, y=%f, z=%f, yaw=%f", msg.x, msg.y, msg.z, msg.yaw);
+        adsorb_state            =msg.mode;
+        RCLCPP_INFO(node_->get_logger(), "接受到新目标: x=%f, y=%f, z=%f, yaw=%f, mode=%u", msg.x, msg.y, msg.z, msg.yaw, msg.mode);
         target_change = true;
         target_received = true; 
         });
 
     ui_update_timer  = node_->create_wall_timer(50ms, std::bind(&ArmCalcNode::show_callback, this));
-    arm_update_timer = node_->create_wall_timer(10ms, std::bind(&ArmCalcNode::arm_update, this));
-    //arm_control_timer = node_->create_wall_timer(10ms, std::bind(&ArmCalcNode::arm_control, this));
+    //arm_update_timer = node_->create_wall_timer(10ms, std::bind(&ArmCalcNode::arm_update, this));
+    arm_control_timer = node_->create_wall_timer(10ms, std::bind(&ArmCalcNode::arm_control, this));
     RCLCPP_INFO(node_->get_logger(), "初始化完成");
 }
 
@@ -155,9 +125,7 @@ void ArmCalcNode::show_callback() {
     joint_display_msg.header.stamp = node_->get_clock()->now();
     rviz_joint_publisher->publish(joint_display_msg);
 
-    // RCLCPP_INFO(node_->get_logger(), "roll:%lf,pitch=%lf", roll_offset_virtual_torque, pitch_offset_virtual_torque);
-
-    // RCLCPP_INFO(node_->get_logger(), "kp=%lf,kd=%lf,mass=%lf", vmc->kp, vmc->kd, vmc->mass);
+    
 }
 
 
@@ -293,33 +261,64 @@ void ArmCalcNode::arm_update()
     arm_target_pub->publish(joints_target);
 }
 
-/*
+
 void ArmCalcNode::arm_control()
 {
 
    if(adsorb_state == 0){
-        RCLCPP_INFO(node_->get_logger(), "吸附到块，正在回归初始位置");
         
-         robot_interfaces::msg::Arm joints_target;
-
-    joints_target.servo2.up =0.0;
-
-    joints_target.servo2.low =0.0;
+    arm_update();
         
-
-    joints_target.rob01.rad =0.0;
+    }else if(adsorb_state == 1){
         
-    joints_target.rob02.rad =0.0;
+    Eigen::Vector4d current_pos = arm_joint_pos;
+    Eigen::Vector4d target_pos(0.0, 0.0, 0.0, 0.9);
+
+    RCLCPP_INFO_THROTTLE(
+    node_->get_logger(),
+    *node_->get_clock(),
+    1000,
+    "吸附到块，正在回归初始位置");
+        
+    robot_interfaces::msg::Arm joints_target;
+
+   current_pos[3] = ramp_control(target_pos[3], current_pos[3], 0.004);
+   current_pos[2] = ramp_control(target_pos[2], current_pos[2], 0.004);
+   current_pos[1] = ramp_control(target_pos[1], current_pos[1], 0.004);
+   current_pos[0] = ramp_control(target_pos[0], current_pos[0], 0.004);
+
+    arm_joint_pos = current_pos;
+
+    joints_target.servo2.up  = current_pos[3];
+    joints_target.servo2.low = current_pos[2];
+    joints_target.rob01.rad  = current_pos[1];
+    joints_target.rob02.rad  = current_pos[0];
         
     arm_target_pub->publish(joints_target);
         
-        
-    }else if(adsorb_state == 1){
-        arm_update();
+
     }
 
  
 
 }
 
-*/
+double ArmCalcNode::ramp_control(double target, double current, double ramp)
+{
+    double diff = target - current;
+
+    if (diff > ramp)
+    {
+        current += ramp;
+    }
+    else if (diff < -ramp)
+    {
+        current -= ramp;
+    }
+    else
+    {
+        current = target;
+    }
+
+    return current;
+}
