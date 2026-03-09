@@ -72,8 +72,8 @@ ArmCalcNode::ArmCalcNode(const rclcpp::Node::SharedPtr node)
     arm_calc = std::make_shared<ArmCalc>(arm_chain);
 
 
-    joint_display_msg.name = {"joint1", "joint2", "joint3", "joint4"};
-    joint_display_msg.position.resize(4);
+    joint_display_msg.name = {"joint1", "joint2", "joint3", "joint4", "joint5"};
+    joint_display_msg.position.resize(5);
 
     move_cmd_sub =
         node_->create_subscription<robot_interfaces::msg::Armcmd>("arm_move_cmd", 10, [this](const robot_interfaces::msg::Armcmd& msg) {
@@ -111,7 +111,8 @@ void ArmCalcNode::show_callback() {
         "joint1",
         "joint2",
         "joint3",
-        "joint4"
+        "joint4",
+        "joint5"
     };
 
 

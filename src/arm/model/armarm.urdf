@@ -3,15 +3,7 @@
      Commit Version: 1.6.0-4-g7f85cfe  Build Version: 1.6.7995.38578
      For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
 <robot
-  name="arm">
-
-  <link name="world"/>
-
-  <joint name="world_joint" type="fixed">
-    <parent link="world"/>
-    <child link="base_link"/>
-  </joint>
-
+  name="armarm">
   <link
     name="base_link">
     <inertial>
@@ -23,9 +15,9 @@
       <inertia
         ixx="0.00512915549939724"
         ixy="1.34002461176202E-05"
-        ixz="-1.5805511307283E-12"
+        ixz="-1.58055112793233E-12"
         iyy="0.00871416793501376"
-        iyz="1.25382019510717E-11"
+        iyz="1.253820195276E-11"
         izz="0.0138379553843523" />
     </inertial>
     <visual>
@@ -56,16 +48,16 @@
     name="link1">
     <inertial>
       <origin
-        xyz="0.0350830336741171 -0.00415934285815935 0.00218726077552271"
+        xyz="0.035083033674117 -0.00415934285750682 0.00218726342128653"
         rpy="0 0 0" />
       <mass
         value="2.52839234415653" />
       <inertia
         ixx="0.0034868807361204"
         ixy="-9.28341215280675E-06"
-        ixz="-1.51421027245075E-06"
+        ixz="-1.51421027245029E-06"
         iyy="0.0206826977793449"
-        iyz="-2.49745487927417E-06"
+        iyz="-2.49745487927448E-06"
         izz="0.0227755526534273" />
     </inertial>
     <visual>
@@ -109,17 +101,17 @@
     name="link2">
     <inertial>
       <origin
-        xyz="0.0857608058219387 -1.62146361615267E-09 -0.0348304697329126"
+        xyz="0.112512639803757 0.00273212691579126 -0.0355363965584416"
         rpy="0 0 0" />
       <mass
-        value="0.549716905790998" />
+        value="0.425516880933423" />
       <inertia
-        ixx="0.000148718700889303"
-        ixy="-1.83049156138468E-11"
-        ixz="-2.7823136677564E-06"
-        iyy="0.00299499105373979"
-        iyz="-2.28181910070197E-11"
-        izz="0.00290488995742491" />
+        ixx="9.08717563449305E-05"
+        ixy="-9.15390847597292E-12"
+        ixz="-1.39115683387731E-06"
+        iyy="0.0027657225969899"
+        iyz="-1.14090954983423E-11"
+        izz="0.00272709297268402" />
     </inertial>
     <visual>
       <origin
@@ -149,7 +141,7 @@
     name="joint2"
     type="revolute">
     <origin
-      xyz="0.3275 -0.0335 0.0485"
+      xyz="0.32753 -0.04351 0.0325"
       rpy="1.5708 3.1416 0" />
     <parent
       link="link1" />
@@ -158,8 +150,8 @@
     <axis
       xyz="0 0 -1" />
     <limit
-      lower="-3.1416"
-      upper="3.1416"
+      lower="-3.14159"
+      upper="3.14159"
       effort="0"
       velocity="0" />
   </joint>
@@ -167,7 +159,7 @@
     name="link3">
     <inertial>
       <origin
-        xyz="0.0651512472133345 -0.00931897166971898 -0.000171100160753751"
+        xyz="0.0651512472133347 -0.00931897166971897 -0.000171100160753751"
         rpy="0 0 0" />
       <mass
         value="0.122270691158031" />
@@ -207,7 +199,7 @@
     name="joint3"
     type="revolute">
     <origin
-      xyz="0.3695 0 -0.044"
+      xyz="0.34 0 -0.0435"
       rpy="0 0 -1.5708" />
     <parent
       link="link2" />
@@ -216,8 +208,8 @@
     <axis
       xyz="0 0 1" />
     <limit
-      lower="0"
-      upper="1.5708"
+      lower="-3.14159"
+      upper="3.14159"
       effort="0"
       velocity="0" />
   </joint>
@@ -232,9 +224,9 @@
       <inertia
         ixx="4.97476467538955E-05"
         ixy="-9.57855804930017E-06"
-        ixz="2.49424727468678E-07"
+        ixz="2.49424727468677E-07"
         iyy="3.49339849733935E-05"
-        iyz="7.34300502151481E-07"
+        iyz="7.34300502151482E-07"
         izz="2.91036780131539E-05" />
     </inertial>
     <visual>
@@ -265,7 +257,7 @@
     name="joint4"
     type="revolute">
     <origin
-      xyz="0.2 0.004 -0.026"
+      xyz="0.17 -0.020156 -0.02375"
       rpy="0 0 1.5708" />
     <parent
       link="link3" />
@@ -274,54 +266,60 @@
     <axis
       xyz="0 0 -1" />
     <limit
-      lower="-3.1416"
-      upper="3.1416"
+      lower="-3.14159"
+      upper="3.14159"
       effort="0"
       velocity="0" />
-    </joint>
-
-  <!-- ros2_control plugin for mujoco -->
-  <ros2_control name="ArmSystem" type="system">
-
-    <hardware>
-      <plugin>mujoco_ros2_control/MujocoSystem</plugin>
-    </hardware>
-
-    <joint name="joint1">
-      <command_interface name="position"/>
-      <state_interface name="position"/>
-      <state_interface name="velocity"/>
-    </joint>
-
-    <joint name="joint2">
-      <command_interface name="position"/>
-      <state_interface name="position"/>
-      <state_interface name="velocity"/>
-    </joint>
-
-    <joint name="joint3">
-      <command_interface name="position"/>
-      <state_interface name="position"/>
-      <state_interface name="velocity"/>
-    </joint>
-
-    <joint name="joint4">
-      <command_interface name="position"/>
-      <state_interface name="position"/>
-      <state_interface name="velocity"/>
-    </joint>
-
-   </ros2_control>
-
-  <mujoco>
-    <actuator>
-
-      <position joint="joint1" kp="100"/>
-      <position joint="joint2" kp="100"/>
-      <position joint="joint3" kp="100"/>
-      <position joint="joint4" kp="100"/>
-
-    </actuator>
-  </mujoco>
-
+  </joint>
+  <link
+    name="link5">
+    <inertial>
+      <origin
+        xyz="-0.713238262090564 -0.00159805879902436 -0.0566453676338307"
+        rpy="0 0 0" />
+      <mass
+        value="6.72485772348953" />
+      <inertia
+        ixx="0.0495961217544726"
+        ixy="0.0019300946304443"
+        ixz="0.0238489495738574"
+        iyy="0.365339449397009"
+        iyz="0.00272700919493718"
+        izz="0.379507093139552" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="joint5"
+    type="fixed">
+    <origin
+      xyz="-0.033 -0.0904 0.02425"
+      rpy="1.5708 0 0" />
+    <parent
+      link="link4" />
+    <child
+      link="link5" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
 </robot>
