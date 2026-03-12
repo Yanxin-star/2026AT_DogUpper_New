@@ -97,6 +97,8 @@ private:
     KDL::Tree tree;
     std::string urdf_xml;
     KDL::Chain arm_chain;
+    Eigen::Isometry3d T_link4_link5;
+    Eigen::Matrix3d R;
    
     std::shared_ptr<ArmCalc> arm_calc;
     Eigen::Vector4d target_joint_pos;

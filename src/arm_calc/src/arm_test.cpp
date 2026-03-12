@@ -37,7 +37,7 @@ public:
         yaw_descriptor.floating_point_range.resize(1);
         yaw_descriptor.floating_point_range[0].from_value = -3.14159;
         yaw_descriptor.floating_point_range[0].to_value = 3.14159;
-        this->declare_parameter<double>("yaw", 0.0, yaw_descriptor);
+        this->declare_parameter<double>("yaw", -3.14159, yaw_descriptor);
 
         this->declare_parameter<int>("step_type", 0);
 

@@ -5,6 +5,7 @@
 #include <kdl/frames.hpp>
 #include <kdl/jntarray.hpp>
 #include <rclcpp/logger.hpp>
+#include <tf2/LinearMath/Quaternion.h>
 
 using namespace std::chrono_literals;
 
@@ -49,7 +50,7 @@ Eigen::Matrix<double, 3, 3> ArmCalc::get_3x3_jacobian_(const KDL::Jacobian &full
 
 Eigen::Vector4d ArmCalc::joint_pos(
     const Eigen::Vector3d &target_pos,
-    double yaw,
+    double pitch,
     int *result)
 {
     KDL::Frame frame;
@@ -61,8 +62,11 @@ Eigen::Vector4d ArmCalc::joint_pos(
     frame.p.y(temp[1]);
     frame.p.z(temp[2]);
 
-    // ⭐关键：设置末端绕Z轴旋转
-    frame.M = KDL::Rotation::RotZ(yaw);
+    // ⭐关键：设置末端绕Y轴旋转（pitch）
+    // tf2::Quaternion q;
+    // q.setRPY(0, pitch, 0);
+    // frame.M = KDL::Rotation::Quaternion(q.x(), q.y(), q.z(), q.w());
+    frame.M = KDL::Rotation::RPY(0, pitch, 0);
 
     // 调用IK求解
     *result = ik_pos_solver.CartToJnt(
@@ -229,11 +233,11 @@ Eigen::Vector4d ArmCalc::end_pose(
     result[1] = frame.p.y();
     result[2] = frame.p.z();
 
-    // 提取旋转（yaw）
+    // 提取旋转（pitch）
     double roll, pitch, yaw;
     frame.M.GetRPY(roll, pitch, yaw);
 
-    result[3] = yaw;
+    result[3] = pitch;
 
     return result;
 }

@@ -310,11 +310,12 @@
     </collision>
   </link>
   <joint
+  
     name="joint5"
     type="fixed">
     <origin
       xyz="-0.033 -0.0904 0.02425"
-      rpy="1.5708 0 0" />
+      rpy="-1.5708 0 3.14159" />
     <parent
       link="link4" />
     <child

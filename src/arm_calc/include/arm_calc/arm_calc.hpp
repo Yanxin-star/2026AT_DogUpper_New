@@ -33,7 +33,7 @@ public:
     ~ArmCalc();
     void set_arm_state(KDL::JntArray &rad, KDL::JntArray &omega, KDL::JntArray &torque);    //在一个控制周期内，应首先调用它
     //int joint_pos(KDL::JntArray &joint_rad, KDL::Vector &foot_pos,KDL::JntArray &result);
-    Eigen::Vector4d joint_pos(const Eigen::Vector3d &target_pos,double yaw,int *result);       //稍后需要在线安装IK求解器（手推的解析求解器或者数值迭代器）
+    Eigen::Vector4d joint_pos(const Eigen::Vector3d &target_pos,double pitch,int *result);       //稍后需要在线安装IK求解器（手推的解析求解器或者数值迭代器）
 
     Eigen::Vector4d end_pose(const Eigen::Vector4d& joint_rad);
     

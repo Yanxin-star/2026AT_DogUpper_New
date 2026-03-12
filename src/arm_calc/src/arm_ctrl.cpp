@@ -65,11 +65,24 @@ ArmCalcNode::ArmCalcNode(const rclcpp::Node::SharedPtr node)
     robot_tf_broadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(node_);
 
     kdl_parser::treeFromString(urdf_xml, tree); // 解析机械臂的KDL树结构
-    tree.getChain("base_link", "link4", arm_chain);
+    tree.getChain("base_link", "link5", arm_chain);
     
 
     // 初始化机械臂解算器
     arm_calc = std::make_shared<ArmCalc>(arm_chain);
+
+    //机械臂吸盘相对末端的偏移（需要根据实际机械臂设计调整）
+    T_link4_link5.setIdentity();
+
+    T_link4_link5.translate(
+    Eigen::Vector3d(-0.033, -0.0904, 0.02425));
+
+    R = Eigen::AngleAxisd(-1.5708, Eigen::Vector3d::UnitX()) *
+    Eigen::AngleAxisd(0, Eigen::Vector3d::UnitY()) *
+    Eigen::AngleAxisd(3.14159, Eigen::Vector3d::UnitZ());
+
+    T_link4_link5.rotate(R);
+
 
 
     joint_display_msg.name = {"joint1", "joint2", "joint3", "joint4", "joint5"};
@@ -81,7 +94,7 @@ ArmCalcNode::ArmCalcNode(const rclcpp::Node::SharedPtr node)
         arm_exp_cart_pos[0] = msg.x;
         arm_exp_cart_pos[1] = msg.y;
         arm_exp_cart_pos[2] = msg.z;
-        arm_exp_yaw         = msg.yaw;
+        arm_exp_yaw         = msg.yaw;//朝向已写死,目前无法控制pitch
         adsorb_state            =msg.mode;
         RCLCPP_INFO(node_->get_logger(), "接受到新目标: x=%f, y=%f, z=%f, yaw=%f, mode=%u", msg.x, msg.y, msg.z, msg.yaw, msg.mode);
         target_change = true;
@@ -130,19 +143,38 @@ void ArmCalcNode::show_callback() {
 }
 
 
-Eigen::Vector4d ArmCalcNode::signal_arm_calc(const Vector3D& exp_cart_pos,double exp_yaw,std::shared_ptr<ArmCalc> arm_calc)
+Eigen::Vector4d ArmCalcNode::signal_arm_calc(
+    const Vector3D& exp_cart_pos,
+    double exp_yaw,
+    std::shared_ptr<ArmCalc> arm_calc)
 {
     Vector4D joint_pos;
-
     int result;
 
-    // 调用逆运动学
+    // 计算末端在平面上的朝向角
+    double base_yaw = atan2(
+        exp_cart_pos[1],
+        exp_cart_pos[0]);
+
+    //计算目标垂直到平面的点到原点的距离
+    double r = sqrt(
+        exp_cart_pos[0]*exp_cart_pos[0] +
+        exp_cart_pos[1]*exp_cart_pos[1]);
+
+    Vector3D planar_pos;
+
+    planar_pos[0] = r;
+    planar_pos[1] = 0;
+    planar_pos[2] = exp_cart_pos[2];
+
     joint_pos = arm_calc->joint_pos(
-        exp_cart_pos,
+        planar_pos,
         exp_yaw,
         &result);
 
-    // 错误处理
+    joint_pos[0] = base_yaw;
+
+     // 错误处理
     if (result != 0)
     {
         RCLCPP_ERROR(node_->get_logger(),
@@ -155,8 +187,6 @@ Eigen::Vector4d ArmCalcNode::signal_arm_calc(const Vector3D& exp_cart_pos,double
 
     return joint_pos;
 }
-
-
 
 void ArmCalcNode::arm_update()
 {
