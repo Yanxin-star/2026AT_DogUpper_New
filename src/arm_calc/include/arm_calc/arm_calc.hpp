@@ -27,40 +27,37 @@
 #include <kdl/chainiksolverpos_lma.hpp>
 #include <kdl/chainjnttojacdotsolver.hpp>
 
+using Vector6d = Eigen::Matrix<double, 6, 1>;
+
 class ArmCalc{
 public:
     ArmCalc(KDL::Chain &chain);
     ~ArmCalc();
-    void set_arm_state(KDL::JntArray &rad, KDL::JntArray &omega, KDL::JntArray &torque);    //在一个控制周期内，应首先调用它
+    void set_leg_state(KDL::JntArray &rad, KDL::JntArray &omega, KDL::JntArray &torque);    //在一个控制周期内，应首先调用它
+
     //int joint_pos(KDL::JntArray &joint_rad, KDL::Vector &foot_pos,KDL::JntArray &result);
-    Eigen::Vector4d joint_pos(const Eigen::Vector3d &target_pos,double pitch,int *result);       //稍后需要在线安装IK求解器（手推的解析求解器或者数值迭代器）
+    Vector6d joint_pos(const Eigen::Vector3d &pos,const Eigen::Vector3d &rpy,int *result);      //稍后需要在线安装IK求解器（手推的解析求解器或者数值迭代器）
 
-    Eigen::Vector4d end_pose(const Eigen::Vector4d& joint_rad);
-    
-    
-    
-    
-    
-    
-    
-    Eigen::Vector3d joint_vel(const Eigen::Vector3d &joint_rad, const Eigen::Vector3d &foot_vel);
+    Vector6d joint_vel(const Vector6d &joint_rad, const Vector6d &arm_exp_vel); 
 
-    Eigen::Vector3d joint_torque_dynamic(const Eigen::Vector3d &joint_rad, const Eigen::Vector3d &joint_omega, const Eigen::Vector3d &foot_acc);
+    Vector6d joint_torque_dynamic(const Vector6d &joint_rad, const Vector6d &joint_omega, const Vector6d &foot_acc);
 
-    Eigen::Vector3d joint_torque_foot_force(const Eigen::Vector3d &joint_rad,const Eigen::Vector3d &foot_force);    //由足端期望力计算的关节力矩
+    Vector6d joint_torque_dynamic2(const Vector6d &joint_rad, const Vector6d &joint_omega, const Vector6d &foot_acc);
 
-    Eigen::Vector3d foot_force(const Eigen::Vector3d &joint_rad,const Eigen::Vector3d &joint_torque,const Eigen::Vector3d &forward_torque=Vector3D(0.0,0.0,0.0));
+    Vector6d joint_torque_foot_force(const Vector6d &joint_rad,const Vector6d &foot_force);    //由足端期望力计算的关节力矩
 
-    Eigen::Vector3d foot_vel(const Eigen::Vector3d &joint_rad, const Eigen::Vector3d &joint_omega);
+    Vector6d foot_force(const Vector6d &joint_rad,const Vector6d &joint_torque,const Vector6d &forward_torque);
+
+    Vector6d foot_vel(const Vector6d &joint_rad, const Vector6d &joint_omega);
     
-    Eigen::Vector3d foot_pos(const Eigen::Vector3d& joint_rad);
+    Vector6d foot_pos(const Vector6d& joint_rad);
 
-    Eigen::Vector3d pos_offset; // 足端位置到机器人中心的偏移
+  
 private:
 
-    Eigen::Vector3d joint_acc(const Eigen::Vector3d &joint_rad, const Eigen::Vector3d &joint_vel,Eigen::Vector3d foot_acc);
+   Vector6d joint_acc(const Vector6d &joint_rad, const Vector6d &joint_vel,Vector6d arm_acc);
 
-    Eigen::Matrix<double, 3, 3> get_3x3_jacobian_(const KDL::Jacobian &full_jacobian);    //从KDL库中求出我们感兴趣的3*3位置雅可比矩阵
+    Eigen::Matrix<double, 6, 6> get_6x6_jacobian_(const KDL::Jacobian &full_jacobian);    //从KDL库中求出我们感兴趣的3*3位置雅可比矩阵
 
     KDL::Chain chain;
     KDL::ChainFkSolverPos_recursive fk_solver;  //关节位置->足端位置
@@ -80,7 +77,6 @@ private:
 
     KDL::JntArray _temp_joint3_array;
     KDL::JntArray _temp2_joint3_array;
-    KDL::JntArray _temp_joint_array;
 
     KDL::JntArrayVel _temp_joint3_vel_array;
     KDL::Twist _temp_jdot_qd;

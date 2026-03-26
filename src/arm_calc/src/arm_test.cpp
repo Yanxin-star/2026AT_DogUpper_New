@@ -32,14 +32,34 @@ public:
         z_descriptor.floating_point_range[0].to_value = 10.0;
         this->declare_parameter<double>("z", 0.0, z_descriptor);
 
+        auto roll_descriptor = rcl_interfaces::msg::ParameterDescriptor();
+        roll_descriptor.description = "Rotation around X axis in radians";
+        roll_descriptor.floating_point_range.resize(1);
+        roll_descriptor.floating_point_range[0].from_value = -3.14159;
+        roll_descriptor.floating_point_range[0].to_value = 3.14159;
+        this->declare_parameter<double>("roll", 0, roll_descriptor);
+
+        auto pitch_descriptor = rcl_interfaces::msg::ParameterDescriptor();
+        pitch_descriptor.description = "Rotation around Y axis in radians";
+        pitch_descriptor.floating_point_range.resize(1);
+        pitch_descriptor.floating_point_range[0].from_value = -3.14159;
+        pitch_descriptor.floating_point_range[0].to_value = 3.14159;
+        this->declare_parameter<double>("pitch", 0, pitch_descriptor);
+
         auto yaw_descriptor = rcl_interfaces::msg::ParameterDescriptor();
         yaw_descriptor.description = "Rotation around Z axis in radians";
         yaw_descriptor.floating_point_range.resize(1);
         yaw_descriptor.floating_point_range[0].from_value = -3.14159;
         yaw_descriptor.floating_point_range[0].to_value = 3.14159;
-        this->declare_parameter<double>("yaw", -3.14159, yaw_descriptor);
+        this->declare_parameter<double>("yaw", 0, yaw_descriptor);
 
         this->declare_parameter<int>("step_type", 0);
+        this->declare_parameter<float>("rad1", 0.0f);
+        this->declare_parameter<float>("rad2", 0.0f);
+        this->declare_parameter<float>("rad3", 0.0f);
+        this->declare_parameter<float>("rad4", 0.0f);
+        this->declare_parameter<float>("rad5", 0.0f);
+        this->declare_parameter<float>("rad6", 0.0f);
 
         // create publisher
         pub_ = this->create_publisher<robot_interfaces::msg::Armcmd>("arm_move_cmd", 10);
@@ -74,6 +94,22 @@ public:
                             result.reason = "z must be a number";
                             return result;
                         }
+                    }  else if (p.get_name() == "roll") {
+                        if (p.get_type() == rclcpp::PARAMETER_DOUBLE || p.get_type() == rclcpp::PARAMETER_INTEGER) {
+                            roll_ = static_cast<float>(p.as_double());
+                        } else {
+                            result.successful = false;
+                            result.reason = "roll must be a number";
+                            return result;
+                        }
+                    }  else if (p.get_name() == "pitch") {
+                        if (p.get_type() == rclcpp::PARAMETER_DOUBLE || p.get_type() == rclcpp::PARAMETER_INTEGER) {
+                            pitch_ = static_cast<float>(p.as_double());
+                        } else {
+                            result.successful = false;
+                            result.reason = "pitch must be a number";
+                            return result;
+                        }
                     } else if (p.get_name() == "yaw") {
                         if (p.get_type() == rclcpp::PARAMETER_DOUBLE || p.get_type() == rclcpp::PARAMETER_INTEGER) {
                             yaw_ = static_cast<float>(p.as_double());
@@ -94,6 +130,54 @@ public:
                             result.reason = "step_type must be an integer";
                             return result;
                         }
+                    } else if (p.get_name() == "rad1") {
+                        if (p.get_type() == rclcpp::PARAMETER_DOUBLE || p.get_type() == rclcpp::PARAMETER_INTEGER) {
+                            rad1_ = static_cast<float>(p.as_double());
+                        } else {
+                            result.successful = false;
+                            result.reason = "rad1 must be a number";
+                            return result;
+                        }
+                    } else if (p.get_name() == "rad2") {
+                        if (p.get_type() == rclcpp::PARAMETER_DOUBLE || p.get_type() == rclcpp::PARAMETER_INTEGER) {
+                            rad2_ = static_cast<float>(p.as_double());
+                        } else {
+                            result.successful = false;
+                            result.reason = "rad2 must be a number";
+                            return result;
+                        }
+                    } else if (p.get_name() == "rad3") {
+                        if (p.get_type() == rclcpp::PARAMETER_DOUBLE || p.get_type() == rclcpp::PARAMETER_INTEGER) {
+                            rad3_ = static_cast<float>(p.as_double());
+                        } else {
+                            result.successful = false;
+                            result.reason = "rad3 must be a number";
+                            return result;
+                        }
+                    } else if (p.get_name() == "rad4") {
+                        if (p.get_type() == rclcpp::PARAMETER_DOUBLE || p.get_type() == rclcpp::PARAMETER_INTEGER) {
+                            rad4_ = static_cast<float>(p.as_double());
+                        } else {
+                            result.successful = false;
+                            result.reason = "rad4 must be a number";
+                            return result;
+                        }
+                    } else if (p.get_name() == "rad5") {
+                        if (p.get_type() == rclcpp::PARAMETER_DOUBLE || p.get_type() == rclcpp::PARAMETER_INTEGER) {
+                            rad5_ = static_cast<float>(p.as_double());
+                        } else {
+                            result.successful = false;
+                            result.reason = "rad5 must be a number";
+                            return result;
+                        }
+                    } else if (p.get_name() == "rad6") {
+                        if (p.get_type() == rclcpp::PARAMETER_DOUBLE || p.get_type() == rclcpp::PARAMETER_INTEGER) {
+                            rad6_ = static_cast<float>(p.as_double());
+                        } else {
+                            result.successful = false;
+                            result.reason = "rad6 must be a number";
+                            return result;
+                        }
                     }
                     
                 }
@@ -105,8 +189,16 @@ public:
         x_ = static_cast<float>(this->get_parameter("x").as_double());
         y_ = static_cast<float>(this->get_parameter("y").as_double());
         z_ = static_cast<float>(this->get_parameter("z").as_double());
+        roll_ = static_cast<float>(this->get_parameter("roll").as_double());
+        pitch_ = static_cast<float>(this->get_parameter("pitch").as_double());
         yaw_ = static_cast<float>(this->get_parameter("yaw").as_double());
-        step_type_ = static_cast<uint32_t>(this->get_parameter("step_type").as_int()); 
+        step_type_ = static_cast<uint32_t>(this->get_parameter("step_type").as_int());
+        rad1_ = static_cast<float>(this->get_parameter("rad1").as_double());
+        rad2_ = static_cast<float>(this->get_parameter("rad2").as_double());
+        rad3_ = static_cast<float>(this->get_parameter("rad3").as_double());
+        rad4_ = static_cast<float>(this->get_parameter("rad4").as_double());
+        rad5_ = static_cast<float>(this->get_parameter("rad5").as_double());
+        rad6_ = static_cast<float>(this->get_parameter("rad6").as_double());
         publish_move_cmd();
 
         update_timer=this->create_wall_timer(100ms ,[this](){
@@ -122,18 +214,27 @@ private:
         msg.y = y_;
         msg.z = z_;
         msg.yaw = yaw_;
+        msg.pitch = pitch_;
+        msg.roll = roll_;
+        msg.rad1 = rad1_;
+        msg.rad2 = rad2_;
+        msg.rad3 = rad3_;
+        msg.rad4 = rad4_;
+        msg.rad5 = rad5_;
+        msg.rad6 = rad6_;
         msg.mode = step_type_;
         pub_->publish(msg);
-        RCLCPP_INFO(this->get_logger(), "Published Armcmd: x=%.2f y=%.2f z=%.2f yaw=%.3f step_type=%u",
-                    x_, y_, z_, yaw_, step_type_);
+        RCLCPP_INFO(this->get_logger(), "Published Armcmd: x=%.2f y=%.2f z=%.2f yaw=%.3f roll=%.3f pitch=%.3f rad=[%.3f %.3f %.3f %.3f %.3f %.3f] step_type=%u",
+                    x_, y_, z_, yaw_, roll_, pitch_, rad1_, rad2_, rad3_, rad4_, rad5_, rad6_, step_type_);
     }
 
     rclcpp::Publisher<robot_interfaces::msg::Armcmd>::SharedPtr pub_;
     rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr param_cb_handle_;
     rclcpp::TimerBase::SharedPtr update_timer;
 
-    float x_{0.0f}, y_{0.0f}, z_{0.0f},yaw_{0.0f};
-     uint32_t step_type_{0};
+    float x_{0.0f}, y_{0.0f}, z_{0.0f}, yaw_{0.0f}, roll_{0.0f}, pitch_{0.0f};
+    float rad1_{0.0f}, rad2_{0.0f}, rad3_{0.0f}, rad4_{0.0f}, rad5_{0.0f}, rad6_{0.0f};
+    uint32_t step_type_{0};
 
 };
 

@@ -1,8 +1,16 @@
+#include "arm_calc/arm_calc.hpp"
+#include "arm_calc/arm_ctrl.hpp"
 #include "arm_calc/arm_step.h"
 #include <rclcpp/logger.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <tuple>
 
+
+using Vector6d = Eigen::Matrix<double, 6, 1>;
+
+ArmStep::ArmStep()
+{ 
+};
 static inline void
     set_quintic(ArmStep::QuinticLineParam_t& seg, double p0, double v0, double a0, double pT, double vT, double aT, double dt) {
     double T  = dt;
@@ -37,7 +45,10 @@ static inline double get_quintic_dtdt(const ArmStep::QuinticLineParam_t& line, c
     return 2.0f * line.c + 6.0f * line.d * time + 12.0f * line.e * time * time + 20.0f * line.f * time * time * time;
 }
 
-
+ArmStep::ArmStep(const double x_limit,const double y_limit) {
+    this->x_limit=x_limit;
+    this->y_limit=y_limit;
+}
 
 void ArmStep::update_support_trajectory(const Vector3D& cur_pos, const Vector2D& exp_vel, double time) {
     double target_x = -exp_vel[0] * time * 0.5;            // 理想情况下，足端轨迹中心应该过足端坐标系的中点
@@ -353,151 +364,85 @@ std::tuple<Vector3D, Vector3D, Vector3D> GetCycloidStep(float time, CycloidStep_
 }
 
 
-
-
 void ArmStep::update_arm_trajectory(
-    const Vector4D& cur_pos,
-    const Vector4D& final_pos,
-    double time)
-{
+    const Vector6d& cur_pose,   // 当前末端位姿 [x, y, z, rx, ry, rz]
+    const Vector6d& cur_vel,    // 当前末端速度（6维）
+    const Vector6d& exp_pose,   // 目标位姿
+    const Vector6d& exp_vel,    // 目标速度（6维）
+    double time) {              // 规划总时长（中途 replan 时传剩余时间）
+
     arm_trajectory.time = time;
 
-    // x trajectory
-    arm_trajectory.lx.k =
-        (final_pos[0] - cur_pos[0]) / time;
+    // ==================== X Y Z 位置 ====================
+    set_quintic(arm_trajectory.lx,
+                cur_pose[0], cur_vel[0], 0.0,
+                exp_pose[0], exp_vel[0], 0.0, time);
 
-    arm_trajectory.lx.b =
-        cur_pos[0];
+    set_quintic(arm_trajectory.ly,
+                cur_pose[1], cur_vel[1], 0.0,
+                exp_pose[1], exp_vel[1], 0.0, time);
 
+    set_quintic(arm_trajectory.lz,          // ← z 现在也是单段！
+                cur_pose[2], cur_vel[2], 0.0,
+                exp_pose[2], exp_vel[2], 0.0, time);
 
-    // y trajectory
-    arm_trajectory.ly.k =
-        (final_pos[1] - cur_pos[1]) / time;
+    // ==================== rx ry rz 姿态 ====================
+    set_quintic(arm_trajectory.lrx,
+                cur_pose[3], cur_vel[3], 0.0,
+                exp_pose[3], exp_vel[3], 0.0, time);
 
-    arm_trajectory.ly.b =
-        cur_pos[1];
+    set_quintic(arm_trajectory.lry,
+                cur_pose[4], cur_vel[4], 0.0,
+                exp_pose[4], exp_vel[4], 0.0, time);
 
+    set_quintic(arm_trajectory.lrz,
+                cur_pose[5], cur_vel[5], 0.0,
+                exp_pose[5], exp_vel[5], 0.0, time);
 
-    // z trajectory
-    arm_trajectory.lz.k =
-        (final_pos[2] - cur_pos[2]) / time;
-
-    arm_trajectory.lz.b =
-        cur_pos[2];
-
-
-    // w trajectory    
-    arm_trajectory.lw.k =
-        (final_pos[3] - cur_pos[3]) / time;
-
-    arm_trajectory.lw.b =
-        cur_pos[3];
-
+    // ==================== 状态标志 ====================
     arm_trajectory_is_available = true;
-}
-
-void ArmStep::get_arm_pose(
-    double t,
-    Vector4D& pos)
-{
-    pos[0] = arm_trajectory.lx.k * t +
-             arm_trajectory.lx.b;
-
-    pos[1] = arm_trajectory.ly.k * t +
-             arm_trajectory.ly.b;
-
-    pos[2] = arm_trajectory.lz.k * t +
-             arm_trajectory.lz.b;
-
-    pos[3] = arm_trajectory.lw.k * t +
-             arm_trajectory.lw.b;
+    needs_mid_replanning = false;
+    mid_replanning_done = false;
 }
 
 
-//****一下是五次多项式规划,后面考虑迭代 ******/
-// Vector4D ArmStep::get_target(double time, bool& success)
-// {
-//     Vector4D pos;
+std::tuple<Vector6d, Vector6d, Vector6d> ArmStep::get_arm_target(double time, bool& success){
 
-//     if (!arm_trajectory_is_available)
-//     {
-//         success = false;
-//         return pos;
-//     }
 
-//     if(time >= arm_trajectory.time)
-//     {
-//         time = arm_trajectory.time;
-//         success = false;
-//     }
-//     else
-//         success = true;
+    Vector6d pos;
+    Vector6d vel;
+    Vector6d acc;
 
-//     double half_time = arm_trajectory.time * 0.5;
+    if (time >= arm_trajectory.time) {
+    time = arm_trajectory.time;
+    success = false;} else {
+    success = true;
+    }
 
-//     // 中途重新规划
-//     if (needs_mid_replanning &&
-//         !mid_replanning_done &&
-//         time >= half_time)
-//     {
-//         Vector4D new_target =
-//             replanning_callback(initial_target_pos);
 
-//         double mid_pos_x =
-//             get_quintic_value(arm_trajectory.lx, half_time);
+    pos[0] = get_quintic_value(arm_trajectory.lx, time);
+    vel[0] = get_quintic_dt(arm_trajectory.lx, time);
+    acc[0] = get_quintic_dtdt(arm_trajectory.lx, time);
+    pos[1] = get_quintic_value(arm_trajectory.ly, time);
+    vel[1] = get_quintic_dt(arm_trajectory.ly, time);
+    acc[1] = get_quintic_dtdt(arm_trajectory.ly, time);
+    pos[2] = get_quintic_value(arm_trajectory.lz, time);
+    vel[2] = get_quintic_dt(arm_trajectory.lz, time);
+    acc[2] = get_quintic_dtdt(arm_trajectory.lz, time);
+    pos[3] = get_quintic_value(arm_trajectory.lrx, time);
+    vel[3] = get_quintic_dt(arm_trajectory.lrx, time);
+    acc[3] = get_quintic_dtdt(arm_trajectory.lrx, time);
+    pos[4] = get_quintic_value(arm_trajectory.lry, time);
+    vel[4] = get_quintic_dt(arm_trajectory.lry, time);
+    acc[4] = get_quintic_dtdt(arm_trajectory.lry, time);
+    pos[5] = get_quintic_value(arm_trajectory.lrz, time);
+    vel[5] = get_quintic_dt(arm_trajectory.lrz, time);
+    acc[5] = get_quintic_dtdt(arm_trajectory.lrz, time);
+    
+    
+     return std::make_tuple(pos,vel,acc);
 
-//         double mid_pos_y =
-//             get_quintic_value(arm_trajectory.ly, half_time);
 
-//         double mid_pos_z =
-//             get_quintic_value(arm_trajectory.lz, half_time);
+}
 
-//         double mid_pos_yaw =
-//             get_quintic_value(arm_trajectory.lyaw, half_time);
 
-//         set_quintic(
-//             arm_trajectory.lx,
-//             mid_pos_x, 0, 0,
-//             new_target[0], 0, 0,
-//             half_time);
-
-//         set_quintic(
-//             arm_trajectory.ly,
-//             mid_pos_y, 0, 0,
-//             new_target[1], 0, 0,
-//             half_time);
-
-//         set_quintic(
-//             arm_trajectory.lz,
-//             mid_pos_z, 0, 0,
-//             new_target[2], 0, 0,
-//             half_time);
-
-//         set_quintic(
-//             arm_trajectory.lyaw,
-//             mid_pos_yaw, 0, 0,
-//             new_target[3], 0, 0,
-//             half_time);
-
-//         mid_replanning_done = true;
-//     }
-
-//     double t =
-//         (time < half_time)
-//         ? time
-//         : time - half_time;
-
-//     pos[0] =
-//         get_quintic_value(arm_trajectory.lx, t);
-
-//     pos[1] =
-//         get_quintic_value(arm_trajectory.ly, t);
-
-//     pos[2] =
-//         get_quintic_value(arm_trajectory.lz, t);
-
-//     pos[3] =
-//         get_quintic_value(arm_trajectory.lyaw, t);
-
-//     return pos;
-// }

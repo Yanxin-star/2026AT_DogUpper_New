@@ -6,7 +6,7 @@ import os
 def generate_launch_description():
     urdf_path = os.path.join(
         get_package_share_directory("arm"),
-        "model", "armarm.urdf"
+        "model", "robotic_arm.urdf"
     )
     # 读取URDF内容
     with open(urdf_path, 'r') as inf:
@@ -24,8 +24,8 @@ def generate_launch_description():
     )
 
     arm_drive=Node(
-        package="arm_drive",
-        executable="arm_drive"
+        package="robot_driver",
+        executable="robot_driver"
     )
 
     rviz2_config_path=os.path.join(

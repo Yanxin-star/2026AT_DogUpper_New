@@ -2,4 +2,12 @@ float32 x
 float32 y
 float32 z
 float32 yaw
+float32 pitch
+float32 roll
+float32 rad1
+float32 rad2
+float32 rad3
+float32 rad4
+float32 rad5
+float32 rad6
 uint32 mode

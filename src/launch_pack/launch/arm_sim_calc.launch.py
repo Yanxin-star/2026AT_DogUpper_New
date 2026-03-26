@@ -7,10 +7,11 @@ import os
 
 def generate_launch_description():
 
+    simulate_env_launch_scripe="arm_mujoco_sim.py"
 
     urdf_path = os.path.join(
         get_package_share_directory("arm"),
-        "model", "armarm.urdf"
+        "model", "robotic_arm.urdf"
     )
     # 读取URDF内容
     with open(urdf_path, 'r') as inf:
@@ -27,6 +28,16 @@ def generate_launch_description():
         executable="arm_calc"
     )
 
+    static_tf = Node(
+    package='tf2_ros',
+    executable='static_transform_publisher',
+    arguments=[
+        '0.04023', '-0.20514', '0.26134',
+        '1.570796', '-1.570796', '1.570796',
+        'link5', 'camera_link'
+    ]
+)
+
     rviz2_config_path=os.path.join(
         get_package_share_directory("launch_pack"),
         "rviz", "display_config.rviz"
@@ -38,6 +49,8 @@ def generate_launch_description():
         arguments=["-d", rviz2_config_path]  # 可选，指定rviz配置文件
     )
     
+    sim_launch = IncludeLaunchDescription(
+    PythonLaunchDescriptionSource([os.path.join(
+        get_package_share_directory('launch_pack'), 'launch', simulate_env_launch_scripe)]))
     
-    
-    return LaunchDescription([robot_state_pub,  arm_calc , rviz2])
+    return LaunchDescription([robot_state_pub,  arm_calc , rviz2 ,sim_launch ])

@@ -1,7 +1,10 @@
 #pragma once
-
-#include "arm_calc.hpp"
-#include "arm_step.h"
+#include "arm_calc/arm_ctrl.hpp"
+#include "arm_calc/arm_joint_update.hpp"
+#include "arm_calc/arm_space_update.hpp"
+#include "arm_calc/arm_view.hpp"
+#include "arm_calc/arm_calc.hpp"
+#include "arm_calc/arm_step.h"
 #include <Eigen/Dense>
 #include <Eigen/src/Core/Matrix.h>
 #include <chrono>
@@ -32,7 +35,18 @@
 #include <geometry_msgs/msg/twist.hpp>
 #include <tf2/LinearMath/Matrix3x3.hpp>
 #include <tf2/LinearMath/Quaternion.hpp>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/buffer.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
+
+
+using Vector6d = Eigen::Matrix<double, 6, 1>;
+
+class Arm_space;
+class Arm_view;
+class Arm_joint;
+class ArmStep;
 
 
 class ArmCalcNode {
@@ -41,23 +55,25 @@ public:
     ~ArmCalcNode();
 
     int count{0};
+
+    const double MAX_VEL = 1.0;    // rad/s
+    const double MAX_TORQUE = 30.0; // N·m
    
+    rclcpp::Node::SharedPtr get_node() const { return node_; };
 
     static constexpr double WHEEL_RADIUS = 0.065;
 
 private:
 
     void show_callback();
-    void arm_update();
+   
     void arm_control();
-    static double ramp_control(double target, double current, double ramp);
-    
-   /*
-    std::tuple<Vector3D, Vector3D, Vector3D> signal_leg_calc(
-        const Vector3D& exp_cart_pos, const Vector3D& exp_cart_vel, const Vector3D& exp_cart_acc, const Vector3D& exp_cart_force,
-        std::shared_ptr<LegCalc> leg_calc);
-    */
-    Eigen::Vector4d signal_arm_calc(const Vector3D& exp_cart_pos,double exp_yaw,std::shared_ptr<ArmCalc> arm_calc);
+
+    void task_manage();
+
+    bool is_motion_reached();
+
+    bool is_grasp_done();
     
 
     static void quaternionLowPassFilter(double& w,  double& x,  double& y,  double& z,double  w1, double  x1, double  y1, double  z1,double alpha);
@@ -76,12 +92,13 @@ private:
     rclcpp::Publisher<robot_interfaces::msg::Arm>::SharedPtr arm_target_pub;
     //rclcpp::Subscription<robot_interfaces::msg::Arm>::SharedPtr arm_state_sub;
     rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr arm_state_sub;
-     rclcpp::Subscription<robot_interfaces::msg::Armcmd>::SharedPtr move_cmd_sub;
+    rclcpp::Subscription<robot_interfaces::msg::Armcmd>::SharedPtr move_cmd_sub;
     
     rclcpp::Subscription<geometry_msgs::msg::Vector3>::SharedPtr imu_angular_vel_sub;
     rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr rviz_joint_publisher;
     rclcpp::SyncParametersClient::SharedPtr arm_description_param_;
     std::unique_ptr<tf2_ros::TransformBroadcaster> robot_tf_broadcaster;
+    rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr param_cb_ ;
 
 
 
@@ -91,28 +108,43 @@ private:
 
     rclcpp::TimerBase::SharedPtr arm_control_timer;
 
-    std::vector<std::string> joint_names = {"joint1", "joint2", "joint3", "joint4"};
+    std::vector<std::string> joint_names = {"joint1", "joint2", "joint3", "joint4","joint5","joint6"};
 
     // 解算部分
     KDL::Tree tree;
     std::string urdf_xml;
     KDL::Chain arm_chain;
-    Eigen::Isometry3d T_link4_link5;
-    Eigen::Matrix3d R;
+    
    
     std::shared_ptr<ArmCalc> arm_calc;
-    Eigen::Vector4d target_joint_pos;
-    Eigen::Vector3d joint_pos_1,joint_pos_2,joint_pos_3,joint_pos_4;
-    Eigen::Vector4d arm_joint_pos;
-    Eigen::Vector3d arm_exp_cart_pos{0.0,0.0,0.0};
-    double arm_exp_yaw{0.0};
+    std::shared_ptr<Arm_joint> arm_joint_update;
+    std::shared_ptr<Arm_space> arm_space_update;
+    std::shared_ptr<Arm_view> arm_view_update;
+    
+    //Vector6d arm_exp_vel;
+    Vector6d arm_exp_cart_rad{0.0,0.0,0.0,0.0,0.0,0.0};
+    Vector6d arm_exp_cart_pos{0.0,0.0,0.0,0.0,0.0,0.0};
+    Vector6d arm_exp_pos_{0.0,0.0,0.0,0.0,0.0,0.0};
+    Vector6d arm_joint_pos{0.0,0.0,0.0,0.0,0.0,0.0};
+    Vector6d arm_joint_omega{0.0,0.0,0.0,0.0,0.0,0.0};
+    Vector6d arm_joint_torque{0.0,0.0,0.0,0.0,0.0,0.0};
+    Vector6d joints_target_rad{0.0,0.0,0.0,0.0,0.0,0.0};
+    Vector6d joints_target_omega{0.0,0.0,0.0,0.0,0.0,0.0};
+    Vector6d joints_target_torque{0.0,0.0,0.0,0.0,0.0,0.0};
+    Vector6d arm_initialization_rad{0.0, -0.2, -0.4, -0.4, 0.0, 0.0};
 
-    Eigen::Vector4d last_target_joint_pos;
+
+    Vector6d last_target_joint_pos{0.0,0.0,0.0,0.0,0.0,0.0};
     bool trajectory_active = false;
     bool target_change     = false;
     bool last_target_initialized = false;
     bool target_received = false;
-    uint32_t adsorb_state = 0;  // 1: 吸附上  0: 不吸附   释放中
+    bool start_battle{false};
+    
+    uint32_t state_ = 0;  // 1: 吸附后执行关节轨迹规划  0: 笛卡尔空间规划   2：视觉伺服控制
+    uint32_t plan_state = 0;
+    int step = 0;
+    int log_counter;
     double trajectory_duration = 4.0;
 
     rclcpp::Time start_time;
@@ -140,13 +172,17 @@ private:
     double roll_balance_step_compen{0.0};
     double pitch_balance_step_compen{0.0};
 
-    
+    int omega_log_counter;
+    int torque_log_counter;
+    int rad_log_counter;
 
 
     sensor_msgs::msg::JointState joint_display_msg;
 
     tf2::Quaternion robot_rotation;                    //机器人姿态
     geometry_msgs::msg::Twist robot_velocity;          //机器人速度信息
+    std::shared_ptr<tf2_ros::Buffer> tf_buffer;
+    std::shared_ptr<tf2_ros::TransformListener> tf_listener;
 
 
 
